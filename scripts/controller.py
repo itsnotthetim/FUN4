@@ -16,6 +16,12 @@ class ControllerNode(Node):
 
         self.declare_parameter('frequency',100)
         self.freq = self.get_parameter('frequency').value
+  
+        self.declare_parameter('r_max',0.53)
+        self.r_max = self.get_parameter('r_max').value 
+
+        self.declare_parameter('r_min',0.03)
+        self.r_min = self.get_parameter('r_min').value
 
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
 
@@ -28,18 +34,27 @@ class ControllerNode(Node):
         self.robot_ = rtb.DHRobot(
         [   
             rtb.RevoluteMDH(offset=pi/2,d=0.2),
-            rtb.RevoluteMDH(alpha=pi/2,offset=pi/2,d=0.1),
+            rtb.RevoluteMDH(alpha=pi/2,offset=pi/2,d=0.12),
             rtb.RevoluteMDH(a=0.25,d=-0.1)
         ],tool = SE3.Tx(0.28), name="HelloWorld"
         )
 
-        self.r_min = 0.03
-        self.r_max = 0.53
         self.configuration_space = [0.42,0.1,0.33]
         self.name = ["joint_1", "joint_2", "joint_3"]
         self.mode = -1
         self.pose_data = [0.0,0.0,0.0]
         self.flag = 0
+
+    def compute_pose(self,x,y,z):
+        if (x**2 + y**2 + z**2 <= self.r_max**2):
+            T_desired = SE3(x,y,z)
+            q = self.q = self.robot_.ik_LM(T_desired)
+            return [q[0][0],q[0][1],q[0][2]]
+        else:
+            return False
+
+    def check_possible_workspace(self, x, y, z):
+        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min <= z <= self.r_max
 
     def chmod_server_callback(self,request,respond):
         self.mode = request.mode
@@ -52,7 +67,7 @@ class ControllerNode(Node):
 
             if (self.compute_pose(x, y, z) is not False and self.check_possible_workspace(x, y, z) is not False):
                 print(f"mode 1 {self.pose_data}")
-                self.pose_publishing(self.compute_pose(0.2,0.2,0.2))
+                self.pose_publishing(self.compute_pose(x,y,z))
                 respond.success = True
                 respond.joint_pos.position = self.compute_pose(x,y,z)
                 
@@ -70,18 +85,6 @@ class ControllerNode(Node):
             respond.success = True
 
         return respond
-    
-    def compute_pose(self,x,y,z):
-        if (x**2 + y**2 + z**2 <= self.r_max**2):
-            T_desired = SE3(x,y,z)
-            q = self.q = self.robot_.ik_LM(T_desired)
-            return [q[0][0],q[0][1],q[0][2]]
-        else:
-            return False
-
-    def check_possible_workspace(self, x, y, z):
-        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min <= z <= self.r_max
-
 
     def pose_callback(self,msg: PoseStamped):
         x = msg.pose.position.x
