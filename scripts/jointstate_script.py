@@ -6,7 +6,7 @@ from sensor_msgs.msg import JointState
 from math import pi
 from spatialmath import *
 import numpy as np
-import roboticstoolbox as rtb
+
 
 class DummyNode(Node):
     def __init__(self):
@@ -17,6 +17,7 @@ class DummyNode(Node):
         self.q = [0.0, 0.5, 1.4]
         self.cmd_vel = [0.0, 0.0, 0.0]
         self.name = ["joint_1", "joint_2", "joint_3"]
+
 
     def sim_loop(self):
         msg = JointState()

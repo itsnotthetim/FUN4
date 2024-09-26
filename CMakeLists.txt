@@ -29,6 +29,8 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/dummy_script.py
   scripts/jointstate_script.py
+  scripts/controller.py
+  scripts/random_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -45,6 +47,8 @@ install(TARGETS
   cpp_node_test
   DESTINATION lib/${PROJECT_NAME}
 )
+
+
 
 ################ INSTALL LAUNCH, ETC #################
 install(DIRECTORY
