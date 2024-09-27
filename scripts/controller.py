@@ -41,8 +41,8 @@ class ControllerNode(Node):
         
         self.robot_ = rtb.DHRobot(
         [   
-            rtb.RevoluteMDH(offset=pi/2,d=0.2),
-            rtb.RevoluteMDH(alpha=pi/2,offset=pi/2,d=0.02),
+            rtb.RevoluteMDH(d=0.2),
+            rtb.RevoluteMDH(alpha=pi/2,d=0.02),
             rtb.RevoluteMDH(a=0.25)
         ],tool = SE3.Tx(0.28), name="HelloWorld"
         )
@@ -50,10 +50,11 @@ class ControllerNode(Node):
         self.configuration_space = [0.42,0.1,0.33]
         self.name = ["joint_1", "joint_2", "joint_3"]
         self.mode = -1
+        self.random_data = [0.0,0.0,0.0]
         self.pose_data = [0.0,0.0,0.0]
         self.initial_guess = [0,0,0]
         self.current_pose = [0,0,0]
-        self.flag = 0
+        # self.flag = 0
 
         # /end-effector
         self.buffer = Buffer()
@@ -81,39 +82,29 @@ class ControllerNode(Node):
             self.get_logger().error(f"Failed to get transform: {e}")
     
 
-    def call_random_position(self,bool):
-        client = self.create_client(CallRandomPos,'get_random_pos')
-        random_req = CallRandomPos()
-        random_req.is_call = bool
-        if random_req.data  == True:
-            future = client.call_async(random_req)
-
-
 
     def chmod_server_callback(self,request,respond,random=None):
         self.mode = request.mode
 
-        if(self.mode == 1):
-            self.pose_data = request.pose.position
-            x = self.pose_data.x
-            y = self.pose_data.y
-            z = self.pose_data.z
-            print(x,y,z)
-            if (self.compute_pose(x, y, z) is not False and self.check_possible_workspace(x, y, z) is not False):
-                print(f"mode 1 {self.pose_data}")
-                self.pose_publishing(self.compute_pose(x,y,z))
-                respond.success = True
-               
-                self.initial_guess = self.compute_pose(x,y,z)
-                print(self.initial_guess)
-                respond.joint_pos.position = [float(value) for value in self.compute_pose(x, y, z)]
+        if self.mode == 1:
+            # Extracting position from the service request
+            self.pose_data[0] = request.pose.position.x 
+            self.pose_data[1] = request.pose.position.y
+            self.pose_data[2] = request.pose.position.z
 
+
+            if (self.compute_pose(self.pose_data[0], self.pose_data[1], self.pose_data[2]) is not False and 
+                self.check_possible_workspace(self.pose_data[0], self.pose_data[1], self.pose_data[2]) is not False):
+                self.pose_publishing(self.compute_pose(self.pose_data[0],self.pose_data[1],self.pose_data[2]))
+                respond.success = True
+                respond.joint_pos.position = [float(value) for value in self.compute_pose(self.pose_data[0], self.pose_data[1], self.pose_data[2])]
+                self.get_logger().info(f"pose = {self.pose_data} ,angle = {self.initial_guess}")
                 
             else:
                 respond.success = False
-                respond.joint_pos.position = [x,y,z]
+                respond.joint_pos.position = [self.pose_data[0],self.pose_data[1],self.pose_data[2]]
             return respond
-        
+
         elif(self.mode == 2):
             print("mode 2")
             respond.success = True
@@ -121,7 +112,6 @@ class ControllerNode(Node):
         
         elif(self.mode == 3):
             print("Auto mode has been started")
-            # self.call_random_position(True)
             print(self.pose_data)
             respond.success = True
             return respond
@@ -133,7 +123,7 @@ class ControllerNode(Node):
         y = msg.pose.position.y
         z = msg.pose.position.z
 
-        self.pose_data = [x,y,z]
+        self.random_data = [x,y,z]
         # self.configuration_space = self.compute_pose(x,y,z)
 
     def pose_publishing(self,pose_array):
@@ -166,17 +156,18 @@ class ControllerNode(Node):
         return result.x
 
     def compute_pose(self,x,y,z):
-        if (self.r_min**2 <= x**2 + y**2 + z**2 <= self.r_max**2 ):
+        if (self.r_min**2 <= x**2 + y**2 + (z-0.2)**2 <= self.r_max**2 ):
 
-            T_desired = SE3(x,y,z+self.z_offset)
-            q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
+            T_desired = SE3(x,y,z)
+            # q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
+            q, *_  = self.robot_.ikine_LM(T_desired,mask=[1,1,1,0,0,0],q0=[0.0,0.0,0.0])
             return q
         else:
             return False
     
 
     def check_possible_workspace(self, x, y, z):
-        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max  
+        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max + self.z_offset  
 
 
 def main(args=None):

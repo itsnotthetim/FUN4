@@ -31,7 +31,6 @@ class RandomNode(Node):
         self.create_timer(1 / self.freq,self.timer_callback)
 
         self.target_pub_ = self.create_publisher(PoseStamped,'target',10)
-        # self.generate_pose_server = self.create_service(CallRandomPos,'get_random_pos',self.callback_generate_pose)
 
         self.random_array = [0.0,0.0,0.0]
 
@@ -53,16 +52,6 @@ class RandomNode(Node):
             self.random_array[1] = y
             self.random_array[2] = z + self.z_offset
 
-    # def callback_generate_pose(self,request,respond):
-    #     if(request.is_call == True):
-    #         respond.success = True
-    #         respond.random_pos.position.x = self.random_array[0]
-    #         respond.random_pos.position.y = self.random_array[1]
-    #         respond.random_pos.position.z = self.random_array[2]
-    #         self.pose_publisher()
-
-    #     return respond
-        
     def pose_publisher(self):
         self.generate_random_workspace_values()
         msg = PoseStamped()
