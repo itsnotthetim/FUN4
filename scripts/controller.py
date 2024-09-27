@@ -5,8 +5,9 @@ import rclpy
 from rclpy.node import Node
 import roboticstoolbox as rtb
 from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
-from controller_mode_interface.srv import ControllerMode
+from controller_mode_interface.srv import ControllerMode , CallRandomPos
 from tf2_ros import TransformListener, Buffer
+from std_msgs.msg import Bool
 from sensor_msgs.msg import JointState
 from math import pi
 from spatialmath import SE3
@@ -36,6 +37,7 @@ class ControllerNode(Node):
         self.create_timer(1/self.freq,self.timer_callback)
 
         self.chmod_ = self.create_service(ControllerMode,'/change_mode',self.chmod_server_callback)
+
         
         self.robot_ = rtb.DHRobot(
         [   
@@ -53,6 +55,7 @@ class ControllerNode(Node):
         self.current_pose = [0,0,0]
         self.flag = 0
 
+        # /end-effector
         self.buffer = Buffer()
         self.tf_callback= TransformListener(self.buffer, self)
         self.eff_fraame = "end_effector"
@@ -76,33 +79,18 @@ class ControllerNode(Node):
         
         except Exception as e:
             self.get_logger().error(f"Failed to get transform: {e}")
-
-
-    def custom_ikine(self,robot, T_desired, initial_guess):
-        # Define the objective function
-        def objective(q):
-            T_actual = robot.fkine(q)
-            return np.linalg.norm(T_actual.A - T_desired.A)
-        
-        # Run the optimization
-        result = minimize(objective, initial_guess, bounds=[(-pi, pi) for _ in initial_guess])
-        
-        return result.x
-
-    def compute_pose(self,x,y,z):
-        if (self.r_min**2 <= x**2 + y**2 + z**2 <= self.r_max**2 ):
-
-            T_desired = SE3(x,y,z+self.z_offset)
-            q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
-            return q
-        else:
-            return False
     
 
-    def check_possible_workspace(self, x, y, z):
-        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max 
+    def call_random_position(self,bool):
+        client = self.create_client(CallRandomPos,'get_random_pos')
+        random_req = CallRandomPos()
+        random_req.is_call = bool
+        if random_req.data  == True:
+            future = client.call_async(random_req)
 
-    def chmod_server_callback(self,request,respond):
+
+
+    def chmod_server_callback(self,request,respond,random=None):
         self.mode = request.mode
 
         if(self.mode == 1):
@@ -130,17 +118,22 @@ class ControllerNode(Node):
             print("mode 2")
             respond.success = True
             return respond
+        
         elif(self.mode == 3):
-            print("mode 3")
-            self.pose_data = request.pose.position
+            print("Auto mode has been started")
+            # self.call_random_position(True)
+            print(self.pose_data)
             respond.success = True
             return respond
+    
+
 
     def pose_callback(self,msg: PoseStamped):
         x = msg.pose.position.x
         y = msg.pose.position.y
         z = msg.pose.position.z
 
+        self.pose_data = [x,y,z]
         # self.configuration_space = self.compute_pose(x,y,z)
 
     def pose_publishing(self,pose_array):
@@ -154,9 +147,36 @@ class ControllerNode(Node):
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
-       self.get_pos_eff()
-
+    #    self.get_pos_eff()
+        pass
         
+
+
+    # ---------------------------------------------------------------------------------------------------------------------------- #
+
+    def custom_ikine(self,robot, T_desired, initial_guess):
+        # Define the objective function
+        def objective(q):
+            T_actual = robot.fkine(q)
+            return np.linalg.norm(T_actual.A - T_desired.A)
+        
+        # Run the optimization
+        result = minimize(objective, initial_guess, bounds=[(-pi, pi) for _ in initial_guess])
+        
+        return result.x
+
+    def compute_pose(self,x,y,z):
+        if (self.r_min**2 <= x**2 + y**2 + z**2 <= self.r_max**2 ):
+
+            T_desired = SE3(x,y,z+self.z_offset)
+            q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
+            return q
+        else:
+            return False
+    
+
+    def check_possible_workspace(self, x, y, z):
+        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max  
 
 
 def main(args=None):

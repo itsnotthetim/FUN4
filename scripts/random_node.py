@@ -9,7 +9,8 @@ from spatialmath import *
 # import roboticstoolbox as rtb
 import math
 from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
-from controller_mode_interface.srv import ControllerMode
+from controller_mode_interface.srv import ControllerMode , CallRandomPos
+from std_msgs.msg import Bool
 
 class RandomNode(Node):
     def __init__(self):
@@ -30,7 +31,7 @@ class RandomNode(Node):
         self.create_timer(1 / self.freq,self.timer_callback)
 
         self.target_pub_ = self.create_publisher(PoseStamped,'target',10)
-        self.generate_pose_server = self.create_service(ControllerMode,'/get_random_pos',self.callback_generate_pose)
+        # self.generate_pose_server = self.create_service(CallRandomPos,'get_random_pos',self.callback_generate_pose)
 
         self.random_array = [0.0,0.0,0.0]
 
@@ -43,26 +44,37 @@ class RandomNode(Node):
     def generate_random_workspace_values(self):
         # Hollow Sphere worksapce
     
-       x = self.axis_workspace()
-       y = self.axis_workspace()
-       z = self.axis_workspace()
+        x = self.axis_workspace()
+        y = self.axis_workspace()
+        z = self.axis_workspace()
 
-       if (x**2 + y**2 + z**2 <= self.r_max**2):
-        self.random_array[0] = x
-        self.random_array[1] = y
-        self.random_array[2] = z + self.z_offset
+        if (self.r_min <= x**2 + y**2 + z**2 <= self.r_max**2):
+            self.random_array[0] = x
+            self.random_array[1] = y
+            self.random_array[2] = z + self.z_offset
 
-    def callback_generate_pose(self,request,respond):
-        pass
+    # def callback_generate_pose(self,request,respond):
+    #     if(request.is_call == True):
+    #         respond.success = True
+    #         respond.random_pos.position.x = self.random_array[0]
+    #         respond.random_pos.position.y = self.random_array[1]
+    #         respond.random_pos.position.z = self.random_array[2]
+    #         self.pose_publisher()
 
-    def timer_callback(self):
-        # self.generate_random_workspace_values()
-
+    #     return respond
+        
+    def pose_publisher(self):
+        self.generate_random_workspace_values()
         msg = PoseStamped()
         msg.pose.position.x = self.random_array[0]
         msg.pose.position.y = self.random_array[1]
         msg.pose.position.z = self.random_array[2]
-        self.target_pub_.publish(msg)
+        self.target_pub_.publish(msg)     
+
+
+    def timer_callback(self):
+        self.pose_publisher()
+
 
         
 
