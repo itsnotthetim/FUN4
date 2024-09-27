@@ -13,6 +13,7 @@ from math import pi
 from spatialmath import SE3
 from scipy.optimize import minimize
 import numpy as np
+import time
 
 class ControllerNode(Node):
     def __init__(self):
@@ -33,6 +34,7 @@ class ControllerNode(Node):
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
 
         self.create_subscription(PoseStamped,'target',self.pose_callback,10)
+        self.random_pos_client = self.create_client(CallRandomPos,'get_rand_pos')
 
         self.create_timer(1/self.freq,self.timer_callback)
 
@@ -50,8 +52,8 @@ class ControllerNode(Node):
         self.configuration_space = [0.42,0.1,0.33]
         self.name = ["joint_1", "joint_2", "joint_3"]
         self.mode = -1
-        self.random_data = [0.0,0.0,0.0]
-        self.pose_data = [0.0,0.0,0.0]
+        self.random_data = [0.1,0.1,0.1]
+        self.pose_data = [0.0,0.0,0.0] 
         self.initial_guess = [0,0,0]
         self.current_pose = [0,0,0]
         # self.flag = 0
@@ -62,7 +64,20 @@ class ControllerNode(Node):
         self.eff_fraame = "end_effector"
         self.refference_frame = "link_0"
 
+        self.q_new = np.array([0.9, 0.0, 0.0])  # Initial joint angles
+        self.target_position = np.array([0.34, 0.41, 0.2])  # Hypothetical target position
+        self.learning_rate = 0.01  # Step size for updating angles
+        self.last_pose = [0, 0, 0]
+        self.stable_start_time = None
         
+    def call_random_pos(self,call):
+        while not self.random_pos_client.wait_for_service(1.0):
+            self.get_logger().warn("Waiting for Server Starting . . .")
+        random_req = CallRandomPos.Request()
+        random_req.is_call = call
+        self.random_pos_client.call_async(random_req)
+
+
     def get_pos_eff(self):
         try:
             now = rclpy.time.Time()
@@ -73,7 +88,6 @@ class ControllerNode(Node):
             position = transform.transform.translation
             
             self.current_pose = position.x,position.y,position.z
-            print(self.current_pose)
 
             # self.get_logger().info(f"End Effector Position: {position.x}, {position.y}, {position.z}")
             #self.get_logger().info(f"End Effector Orientation: {orientation.x}, {orientation.y}, {orientation.z}, {orientation.w}")
@@ -112,7 +126,6 @@ class ControllerNode(Node):
         
         elif(self.mode == 3):
             print("Auto mode has been started")
-            print(self.pose_data)
             respond.success = True
             return respond
     
@@ -122,9 +135,7 @@ class ControllerNode(Node):
         x = msg.pose.position.x
         y = msg.pose.position.y
         z = msg.pose.position.z
-
         self.random_data = [x,y,z]
-        # self.configuration_space = self.compute_pose(x,y,z)
 
     def pose_publishing(self,pose_array):
         msg = JointState()
@@ -137,8 +148,18 @@ class ControllerNode(Node):
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
-    #    self.get_pos_eff()
-        pass
+        if self.mode == 3:
+            check = self.detect_pose_stability()
+            self.get_pos_eff()  # Get the current position of the end-effector
+            self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])
+            if check == True:
+                self.call_random_pos(True)
+                self.get_logger().info('COMPLETE')
+            else:
+                self.get_logger().info(f'NOT YET rand:{self.random_data}' )
+            
+            
+
         
 
 
@@ -167,8 +188,47 @@ class ControllerNode(Node):
     
 
     def check_possible_workspace(self, x, y, z):
-        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max + self.z_offset  
+        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max 
+    
+    def jacobian_compute(self, x, y, z):
+        T_desired = SE3(x, y, z)
+        q_current = self.initial_guess
 
+        T_current = self.robot_.fkine(q_current)
+        delta_x = (T_desired.A - T_current.A)[:3, 3]  
+
+        J_trans = self.robot_.jacob0(q_current)[:3, :]
+
+        condition_number = np.linalg.cond(J_trans)
+        if condition_number > 1e6:  
+            self.get_logger().warn(f"Jacobian near-singular (cond: {condition_number})")
+            damping_factor = 1e-4
+            J_damped = J_trans.T @ np.linalg.inv(J_trans @ J_trans.T + damping_factor * np.eye(3))
+        else:
+            J_damped = np.linalg.pinv(J_trans)
+
+        try:
+            dq = 0.1 * (J_damped @ delta_x)  
+            q_new = q_current + dq
+            self.pose_publishing(q_new)
+            self.initial_guess = q_new 
+        except np.linalg.LinAlgError as e:
+            self.get_logger().error(f"Jacobian inversion failed: {e}")
+
+    def detect_pose_stability(self):
+        if np.allclose(self.current_pose, self.last_pose, atol=1e-5):
+            if self.stable_start_time is None:
+                self.stable_start_time = time.time()  # Start timing
+            elif time.time() - self.stable_start_time >= 1.0:
+                # Pose hasn't changed for 2 seconds
+                return True
+        else:
+            # Pose changed, reset timing
+            self.last_pose = self.current_pose
+            self.stable_start_time = None
+        return False
+        
+        
 
 def main(args=None):
     rclpy.init(args=args)

@@ -32,10 +32,9 @@ class RandomNode(Node):
 
         self.target_pub_ = self.create_publisher(PoseStamped,'target',10)
 
+        self.call_random_pos_server = self.create_service(CallRandomPos,'get_rand_pos',self.callback_random_pos_server)
         self.random_array = [0.0,0.0,0.0]
-
     
-
     def axis_workspace(self):
         value = np.random.uniform(-self.r_max, self.r_max)
         return value if -self.r_min <= value <= self.r_max else np.random.uniform(-self.r_max, self.r_max)
@@ -51,21 +50,29 @@ class RandomNode(Node):
             self.random_array[0] = x
             self.random_array[1] = y
             self.random_array[2] = z + self.z_offset
+        
 
-    def pose_publisher(self):
+    def callback_random_pos_server(self,request:CallRandomPos,respond):
+        if request.is_call == True:
+            self.target_pose_publisher()
+            respond.success = True
+            respond.random_pos.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
+            print(self.random_array)
+        return respond
+    
+    def target_pose_publisher(self):
         self.generate_random_workspace_values()
         msg = PoseStamped()
-        msg.pose.position.x = self.random_array[0]
-        msg.pose.position.y = self.random_array[1]
-        msg.pose.position.z = self.random_array[2]
+        msg.pose.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
         self.target_pub_.publish(msg)     
 
 
     def timer_callback(self):
-        self.pose_publisher()
+        pass
 
+# ---------------------------------------------------------------------------------------------------------------------------#
 
-        
+    
 
 
 def main(args=None):
