@@ -6,9 +6,12 @@ from rclpy.node import Node
 import roboticstoolbox as rtb
 from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
 from controller_mode_interface.srv import ControllerMode
+from tf2_ros import TransformListener, Buffer
 from sensor_msgs.msg import JointState
 from math import pi
 from spatialmath import SE3
+from scipy.optimize import minimize
+import numpy as np
 
 class ControllerNode(Node):
     def __init__(self):
@@ -23,6 +26,9 @@ class ControllerNode(Node):
         self.declare_parameter('r_min',0.03)
         self.r_min = self.get_parameter('r_min').value
 
+        self.declare_parameter('z_offset',0.2)
+        self.z_offset = self.get_parameter('z_offset').value # Joint offset from base
+
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
 
         self.create_subscription(PoseStamped,'target',self.pose_callback,10)
@@ -34,8 +40,8 @@ class ControllerNode(Node):
         self.robot_ = rtb.DHRobot(
         [   
             rtb.RevoluteMDH(offset=pi/2,d=0.2),
-            rtb.RevoluteMDH(alpha=pi/2,offset=pi/2,d=0.12),
-            rtb.RevoluteMDH(a=0.25,d=-0.1)
+            rtb.RevoluteMDH(alpha=pi/2,offset=pi/2,d=0.02),
+            rtb.RevoluteMDH(a=0.25)
         ],tool = SE3.Tx(0.28), name="HelloWorld"
         )
 
@@ -43,18 +49,58 @@ class ControllerNode(Node):
         self.name = ["joint_1", "joint_2", "joint_3"]
         self.mode = -1
         self.pose_data = [0.0,0.0,0.0]
+        self.initial_guess = [0,0,0]
+        self.current_pose = [0,0,0]
         self.flag = 0
 
+        self.buffer = Buffer()
+        self.tf_callback= TransformListener(self.buffer, self)
+        self.eff_fraame = "end_effector"
+        self.refference_frame = "link_0"
+
+        
+    def get_pos_eff(self):
+        try:
+            now = rclpy.time.Time()
+            transform = self.buffer.lookup_transform(
+                self.refference_frame , 
+                self.eff_fraame,   
+                now)
+            position = transform.transform.translation
+            
+            self.current_pose = position.x,position.y,position.z
+            print(self.current_pose)
+
+            # self.get_logger().info(f"End Effector Position: {position.x}, {position.y}, {position.z}")
+            #self.get_logger().info(f"End Effector Orientation: {orientation.x}, {orientation.y}, {orientation.z}, {orientation.w}")
+        
+        except Exception as e:
+            self.get_logger().error(f"Failed to get transform: {e}")
+
+
+    def custom_ikine(self,robot, T_desired, initial_guess):
+        # Define the objective function
+        def objective(q):
+            T_actual = robot.fkine(q)
+            return np.linalg.norm(T_actual.A - T_desired.A)
+        
+        # Run the optimization
+        result = minimize(objective, initial_guess, bounds=[(-pi, pi) for _ in initial_guess])
+        
+        return result.x
+
     def compute_pose(self,x,y,z):
-        if (x**2 + y**2 + z**2 <= self.r_max**2):
-            T_desired = SE3(x,y,z)
-            q = self.q = self.robot_.ik_LM(T_desired)
-            return [q[0][0],q[0][1],q[0][2]]
+        if (self.r_min**2 <= x**2 + y**2 + z**2 <= self.r_max**2 ):
+
+            T_desired = SE3(x,y,z+self.z_offset)
+            q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
+            return q
         else:
             return False
+    
 
     def check_possible_workspace(self, x, y, z):
-        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min <= z <= self.r_max
+        return -self.r_min <= x <= self.r_max and -self.r_min <= y <= self.r_max and -self.r_min  <= z <= self.r_max 
 
     def chmod_server_callback(self,request,respond):
         self.mode = request.mode
@@ -64,27 +110,31 @@ class ControllerNode(Node):
             x = self.pose_data.x
             y = self.pose_data.y
             z = self.pose_data.z
-
+            print(x,y,z)
             if (self.compute_pose(x, y, z) is not False and self.check_possible_workspace(x, y, z) is not False):
                 print(f"mode 1 {self.pose_data}")
                 self.pose_publishing(self.compute_pose(x,y,z))
                 respond.success = True
-                respond.joint_pos.position = self.compute_pose(x,y,z)
+               
+                self.initial_guess = self.compute_pose(x,y,z)
+                print(self.initial_guess)
+                respond.joint_pos.position = [float(value) for value in self.compute_pose(x, y, z)]
+
                 
             else:
                 respond.success = False
                 respond.joint_pos.position = [x,y,z]
+            return respond
         
         elif(self.mode == 2):
             print("mode 2")
             respond.success = True
-        
+            return respond
         elif(self.mode == 3):
             print("mode 3")
             self.pose_data = request.pose.position
             respond.success = True
-
-        return respond
+            return respond
 
     def pose_callback(self,msg: PoseStamped):
         x = msg.pose.position.x
@@ -104,8 +154,8 @@ class ControllerNode(Node):
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
-       pass
-        
+       self.get_pos_eff()
+
         
 
 
