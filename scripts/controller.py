@@ -110,11 +110,6 @@ class ControllerNode(Node):
         self.mode = request.mode
 
         if self.mode == 1:
-            # Extracting position from the service request
-            # self.pose_data[0] = request.pose.position.x 
-            # self.pose_data[1] = request.pose.position.y
-            # self.pose_data[2] = request.pose.position.z
-
             self.pose_data = request.mode1_pose
             x, y, z = request.mode1_pose.x, request.mode1_pose.y, request.mode1_pose.z
 
@@ -124,7 +119,7 @@ class ControllerNode(Node):
                 self.pose_publishing(self.compute_pose(x, y, z))
                 respond.success = True
                 respond.joint_pos.position = [float(value) for value in self.compute_pose(x, y, z)]
-                self.get_logger().info(f"pose = {self.pose_data} ,angle = {self.initial_guess}")
+                self.get_logger().info(f" \n ================== Position =================== \n X: {x} \n Y: {y} \n Z: {z} \n ============= TaskSpace Variables ============= \n q: {self.compute_pose(x,y,z)}")
                 
             else:
                 respond.success = False
@@ -134,14 +129,15 @@ class ControllerNode(Node):
             return respond
 
         elif(self.mode == 2):
-            print("mode 2")
+            self.get_logger().info('Teleoperation mode has been started')
             self.linear_vel = np.array([0.0,0.0,0.0])
             self.toggle_teleop_mode = request.mode2_toggle
             respond.success = True
             return respond
         
         elif(self.mode == 3):
-            print("Auto mode has been started")
+            self.get_logger().info('Autonomous mode has been started')
+            self.linear_vel = np.array([0.0,0.0,0.0])
             respond.success = True
             return respond
         else:
@@ -179,9 +175,8 @@ class ControllerNode(Node):
             self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])
             if self.flag == True:
                 self.call_random_pos(True)
-                self.get_logger().info('COMPLETE')
             else:
-                self.get_logger().info(f'\n Current Position: {self.current_pose}' )
+                self.get_logger().info(f'\n ================== Current Position =================== \n X: {self.current_pose[0]} \n Y: {self.current_pose[1]} \n Z: {self.current_pose[2]} \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
             
             
 
@@ -256,7 +251,7 @@ class ControllerNode(Node):
             self.get_logger().warn(f"Jacobian near-singular (condition number: {condition_number}).")
             
         else:
-            self.get_logger().info(f"\n Vx: {v_desired[0]} Vy: {v_desired[1]} Vx: {v_desired[2]} \n Current Position: {self.current_pose}")
+            self.get_logger().info(f"\n ================ Linear Velocity ================= \n Vx: {v_desired[0]} \n Vy: {v_desired[1]} \n Vx: {v_desired[2]} \n ================== Position =================== \n Current Position: {self.current_pose}")
     
         try:
             dq = np.linalg.pinv(J_trans) @ v_desired_base  
