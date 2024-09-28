@@ -32,8 +32,9 @@ class ControllerNode(Node):
         self.z_offset = self.get_parameter('z_offset').value # Joint offset from base
 
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
+        self.end_effector_pub = self.create_publisher(PoseStamped,'end_effector',10)
 
-        self.create_subscription(PoseStamped,'target',self.pose_callback,10)
+        self.create_subscription(PoseStamped,'target',self.random_pose_callback,10)
         self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,10)
 
         self.random_pos_client = self.create_client(CallRandomPos,'get_rand_pos')
@@ -61,8 +62,8 @@ class ControllerNode(Node):
         self.flag = 0
 
         self.linear_vel = np.array([0.0,0.0,0.0])
+        self.toggle_teleop_mode = 0
 
-        # /end-effector
         self.buffer = Buffer()
         self.tf_callback= TransformListener(self.buffer, self)
         self.eff_fraame = "end_effector"
@@ -71,7 +72,7 @@ class ControllerNode(Node):
         self.q_new = np.array([0.9, 0.0, 0.0])  # Initial joint angles
         self.last_pose = [0, 0, 0]
         self.stable_start_time = None
-        self.toggle_teleop_mode = 0
+        
         
     def call_random_pos(self,call):
         while not self.random_pos_client.wait_for_service(1.0):
@@ -88,16 +89,18 @@ class ControllerNode(Node):
                 self.refference_frame , 
                 self.eff_fraame,   
                 now)
-            position = transform.transform.translation
-            
-            self.current_pose = position.x,position.y,position.z
-
-            # self.get_logger().info(f"End Effector Position: {position.x}, {position.y}, {position.z}")
-            #self.get_logger().info(f"End Effector Orientation: {orientation.x}, {orientation.y}, {orientation.z}, {orientation.w}")
+            pos= transform.transform.translation   
+            self.current_pose = pos.x,pos.y,pos.z
         
         except Exception as e:
             self.get_logger().error(f"Failed to get transform: {e}")
     
+    def end_effector_publisher(self):
+        msg = PoseStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'end_effector'
+        msg.pose.position = Point(x=float(self.current_pose[0]), y=float(self.current_pose[1]), z=float(self.current_pose[2]))
+        self.end_effector_pub.publish(msg)
 
 
     def chmod_server_callback(self,request,respond,random=None):
@@ -137,27 +140,24 @@ class ControllerNode(Node):
         self.toggle_teleop_mode = msg.angular.z
         # print(self.linear_vel)
 
-    def pose_callback(self,msg: PoseStamped):
+    def random_pose_callback(self,msg: PoseStamped):
         x = msg.pose.position.x
         y = msg.pose.position.y
         z = msg.pose.position.z
         self.random_data = [x,y,z]
 
-       
-
-
+    
     def pose_publishing(self,pose_array):
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
         for i in range(len(pose_array)):
             msg.position.append(pose_array[i])
             msg.name.append(self.name[i])
-        # msg.position = pose_array
-        # msg.name = self.name
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
         self.get_pos_eff()
+        self.end_effector_publisher()
         if self.mode == 2:
             self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
         elif self.mode == 3:
@@ -174,7 +174,7 @@ class ControllerNode(Node):
         
 
 
-    # ---------------------------------------------------------------------------------------------------------------------------- #
+    # -------------------------------------------- Compute and Check the conditions---------------------------------------------- #
   
     def compute_pose(self,x,y,z):
         if (self.r_min**2 <= x**2 + y**2 + (z-0.2)**2 <= self.r_max**2 ):
