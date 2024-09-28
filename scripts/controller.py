@@ -108,21 +108,24 @@ class ControllerNode(Node):
 
         if self.mode == 1:
             # Extracting position from the service request
-            self.pose_data[0] = request.pose.position.x 
-            self.pose_data[1] = request.pose.position.y
-            self.pose_data[2] = request.pose.position.z
+            # self.pose_data[0] = request.pose.position.x 
+            # self.pose_data[1] = request.pose.position.y
+            # self.pose_data[2] = request.pose.position.z
+
+            self.pose_data = request.pose
+            x, y, z = request.pose.x, request.pose.y, request.pose.z
 
 
-            if (self.compute_pose(self.pose_data[0], self.pose_data[1], self.pose_data[2]) is not False and 
-                self.check_possible_workspace(self.pose_data[0], self.pose_data[1], self.pose_data[2]) is not False):
-                self.pose_publishing(self.compute_pose(self.pose_data[0],self.pose_data[1],self.pose_data[2]))
+            if (self.compute_pose(x, y, z) is not False and 
+                self.check_possible_workspace(x, y, z) is not False):
+                self.pose_publishing(self.compute_pose(x, y, z))
                 respond.success = True
-                respond.joint_pos.position = [float(value) for value in self.compute_pose(self.pose_data[0], self.pose_data[1], self.pose_data[2])]
+                respond.joint_pos.position = [float(value) for value in self.compute_pose(x, y, z)]
                 self.get_logger().info(f"pose = {self.pose_data} ,angle = {self.initial_guess}")
                 
             else:
                 respond.success = False
-                respond.joint_pos.position = [self.pose_data[0],self.pose_data[1],self.pose_data[2]]
+                respond.joint_pos.position = [x, y, z]
             return respond
 
         elif(self.mode == 2):
