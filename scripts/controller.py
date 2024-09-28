@@ -33,8 +33,9 @@ class ControllerNode(Node):
 
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
         self.end_effector_pub = self.create_publisher(PoseStamped,'end_effector',10)
+        
 
-        self.create_subscription(PoseStamped,'target',self.random_pose_callback,10)
+        self.create_subscription(PoseStamped,'auto_rand',self.random_pose_callback,10)
         self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,10)
 
         self.random_pos_client = self.create_client(CallRandomPos,'get_rand_pos')
@@ -58,7 +59,7 @@ class ControllerNode(Node):
         self.random_data = [0.1,0.1,0.1]
         self.pose_data = [0.0,0.0,0.0] 
         self.initial_guess = [0,0,0]
-        self.current_pose = [0,0,0]
+        self.current_pose = [0.0,0.0,0.0]
         self.flag = 0
 
         self.linear_vel = np.array([0.0,0.0,0.0])
@@ -74,6 +75,8 @@ class ControllerNode(Node):
         self.stable_start_time = None
 
         self.pose_publishing([0.1,0.1,0.2])
+
+        self.display_pos = [0.0,0.0,0.0]
         
         
         
@@ -85,7 +88,7 @@ class ControllerNode(Node):
         self.random_pos_client.call_async(random_req)
 
 
-    def get_pos_eff(self):
+    def get_pos_eff(self,current_pose):
         try:
             now = rclpy.time.Time()
             transform = self.buffer.lookup_transform(
@@ -93,7 +96,8 @@ class ControllerNode(Node):
                 self.eff_fraame,   
                 now)
             pos= transform.transform.translation   
-            self.current_pose = pos.x,pos.y,pos.z
+            current_pose = pos.x,pos.y,pos.z
+            self.display_pos = pos.x,pos.y,pos.z
         
         except Exception as e:
             # self.get_logger().error(f"Failed to get transform: {e}")
@@ -157,6 +161,9 @@ class ControllerNode(Node):
         z = msg.pose.position.z
         self.random_data = [x,y,z]
 
+
+        
+
     
     def pose_publishing(self,pose_array):
         msg = JointState()
@@ -167,18 +174,17 @@ class ControllerNode(Node):
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
-        self.get_pos_eff()
+        self.get_pos_eff(self.current_pose)
         self.end_effector_publisher()
         if self.mode == 2:
             self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
         elif self.mode == 3:
-            self.get_pos_eff()  # Get the current position of the end-effector
             self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])
             if self.flag == True:
                 self.call_random_pos(True)
             else:
-                self.get_logger().info(f'\n ================== Current Position =================== \n X: {self.current_pose[0]} \n Y: {self.current_pose[1]} \n Z: {self.current_pose[2]} \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
-            
+                self.get_logger().info(f'\n ================== Current Position =================== \n X: {self.display_pos[0]} \n Y: {self.display_pos[1]} \n Z: {self.display_pos[2]} \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
+                
             
 
         
@@ -217,7 +223,7 @@ class ControllerNode(Node):
         condition_number = np.linalg.cond(J_trans)
         if condition_number > 1e6:  
             self.get_logger().warn(f"Jacobian near-singular (cond: {condition_number})")
-            damping_factor = 1e-4
+            damping_factor = 1e-5
             J_damped = J_trans.T @ np.linalg.inv(J_trans @ J_trans.T + damping_factor * np.eye(3))
         else:
             J_damped = np.linalg.pinv(J_trans)
