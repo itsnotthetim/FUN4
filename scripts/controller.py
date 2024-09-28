@@ -51,8 +51,8 @@ class ControllerNode(Node):
             rtb.RevoluteMDH(a=0.25)
         ],tool = SE3.Tx(0.28), name="HelloWorld"
         )
+        
 
-        self.configuration_space = [0.42,0.1,0.33]
         self.name = ["joint_1", "joint_2", "joint_3"]
         self.mode = -1
         self.random_data = [0.1,0.1,0.1]
@@ -62,7 +62,7 @@ class ControllerNode(Node):
         self.flag = 0
 
         self.linear_vel = np.array([0.0,0.0,0.0])
-        self.toggle_teleop_mode = 0
+        self.toggle_teleop_mode = True
 
         self.buffer = Buffer()
         self.tf_callback= TransformListener(self.buffer, self)
@@ -72,6 +72,9 @@ class ControllerNode(Node):
         self.q_new = np.array([0.9, 0.0, 0.0])  # Initial joint angles
         self.last_pose = [0, 0, 0]
         self.stable_start_time = None
+
+        self.pose_publishing([0.1,0.1,0.2])
+        
         
         
     def call_random_pos(self,call):
@@ -112,8 +115,8 @@ class ControllerNode(Node):
             # self.pose_data[1] = request.pose.position.y
             # self.pose_data[2] = request.pose.position.z
 
-            self.pose_data = request.pose
-            x, y, z = request.pose.x, request.pose.y, request.pose.z
+            self.pose_data = request.mode1_pose
+            x, y, z = request.mode1_pose.x, request.mode1_pose.y, request.mode1_pose.z
 
 
             if (self.compute_pose(x, y, z) is not False and 
@@ -126,10 +129,14 @@ class ControllerNode(Node):
             else:
                 respond.success = False
                 respond.joint_pos.position = [x, y, z]
+                self.get_logger().error(f"Position is out of range")
+
             return respond
 
         elif(self.mode == 2):
             print("mode 2")
+            self.linear_vel = np.array([0.0,0.0,0.0])
+            self.toggle_teleop_mode = request.mode2_toggle
             respond.success = True
             return respond
         
@@ -137,6 +144,10 @@ class ControllerNode(Node):
             print("Auto mode has been started")
             respond.success = True
             return respond
+        else:
+            self.get_logger().error(f"Error selecting mode, Please select the mode by following the instruction!")
+            return respond
+
     
     def cmd_vel_callback(self,msg: Twist):
         self.linear_vel = [msg.linear.x,msg.linear.y,msg.linear.z]
@@ -162,7 +173,7 @@ class ControllerNode(Node):
         self.get_pos_eff()
         self.end_effector_publisher()
         if self.mode == 2:
-            self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
+            self.velo_jacobian_compute(self.linear_vel,True)
         elif self.mode == 3:
             self.get_pos_eff()  # Get the current position of the end-effector
             self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])
@@ -199,9 +210,8 @@ class ControllerNode(Node):
         T_current = self.robot_.fkine(q_current)
         delta_x = (T_desired.A - T_current.A)[:3, 3]  
 
-        # Check if delta_x is smaller than the threshold
+        # Threshold
         if np.linalg.norm(delta_x) < 1e-06:
-            # self.get_logger().info("Goal achieved! Error is sufficiently small.")
             self.flag = True
         else:
             self.flag = False
@@ -229,17 +239,14 @@ class ControllerNode(Node):
         q_current = self.initial_guess
         
         # mode == 1: Tranformaiton that reffered by Base frame
-        if mode == 1:
+        if mode == True:
 
             T_current = self.robot_.fkine(q_current)
             
-            # Extract the rotation matrix from the current pose (end-effector to base frame)
             R_base_to_ee = T_current.R
             
-            # Transform the desired velocity from the end-effector frame to the base frame
             v_desired_base = R_base_to_ee @ v_desired
         else:
-            # Directly use to End effector
             v_desired_base = v_desired
 
         J_trans = self.robot_.jacob0(q_current)[:3, :]
