@@ -12,13 +12,16 @@
    - The manupulator has 3 control modes, consist of **Inverse Pose Kinematic Mode (IPK)**, **Tele-operation Mode       (Teleop)** and **Autonomous Mode (Auto)**. For changing the mode, The mode can be changed while it's running
      **Note:** Return the response of service as **True** when the mode has changes.
 
-    **1. Inverse Pose Kinematic:** Calculate the configuration space to task space. Return **True** if the               solition can be solve and operate the robot and vice versa
+    **1. Inverse Pose Kinematic:** Calculate the configuration space to task space. Return **True** if the
+  solition can be solve and operate the robot and vice versa
+
     **2. Teleoperation:** Operate the robot with **/cmd_vel** (msg type: Twist) from **teleop_twist_keyboaard**
       for calculated the joint angular velocity. There're 2 modes for /cmd_vel.
         2.1) /cmd_vel that refer from an **end-effector frame**
         2.2) /cmd_vel that refer from a **base frame**
       **If the robot is close to the Singularity, Stop the robot and publish something to warn the user**
-    **3. Autonomous Mode:** Send the Taskspace from the **Randomizer Node** to the robot and the robot have to           move to the target position within 10 seconds. when finished,response will give the return as **True** then         regenerating the new position.
+
+    **3. Autonomous Mode:** Send the Taskspace from the **Randomizer Node** to the robot and the robot have to           move to the target position within 10 seconds. when finished,response will give the return as **True**             then regenerating the new position.
 
 ## **Features**
 -  **Teleop Keyboard Interface Control**: 
