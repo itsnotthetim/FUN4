@@ -62,6 +62,7 @@ class RandomNode(Node):
     def target_pose_publisher(self):
         self.generate_random_workspace_values()
         msg = PoseStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
         self.target_pub_.publish(msg)     
 
