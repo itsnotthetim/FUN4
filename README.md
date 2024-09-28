@@ -68,9 +68,9 @@
       
         - Mode: 2 ; **Teleoperation Mode --- You have to select mode: 2 and set the mode2_pose which**
           - **True = refer from base to end-effector frame**
-          - **False = refer directly to the end-effector frame **
+          - **False = refer directly to the end-effector frame**
         
-        -  Mode: 3 ; **Autonomous Mode -- Select only mode: 3 **
+        -  Mode: 3 ; **Autonomous Mode -- Select only mode: 3**
      
       **You can leave the setting which doesn't relate to that mode**
     
