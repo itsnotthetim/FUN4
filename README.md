@@ -82,7 +82,7 @@
      ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 1, mode1_pose: {x: 0.3, y: 0.2, z: 0.1}}"
      ```
-   ![IPKMode](https://cdn.discordapp.com/attachments/718092584928411729/1289460430867267654/image.png?ex=66f8e71b&is=66f7959b&hm=014c317ae5193d7de413871dde3d81a80b0f948e887119e4f378a49a3fee42ed&)
+   ![IPKMode](images/image1.png)
 
     **3.) Teleoperation Mode: Example Usage**
     - Mode: Reference at Base frame
@@ -104,9 +104,9 @@
   ```bash
      ros2 run teleop_twist_keyboard teleop_twist_keyboard
    ```
-![teleoptwist](https://cdn.discordapp.com/attachments/718092584928411729/1289500744575356980/image.png?ex=66f90ca7&is=66f7bb27&hm=c1566456140cdcad7426bc9c10aab8d49ee2f129e50abb63cf245886bc51e7cb&)
+![teleoptwist](images/image2.png)
 
-![teleoptwist](https://cdn.discordapp.com/attachments/718092584928411729/1289500858920206376/image.png?ex=66f90cc2&is=66f7bb42&hm=20e2139eb1127e37712f78ef64b2854d9f23bb19cd08d5f5f56244c877cf512d&)
+![teleoptwist](images/image.png)
 
   **4.) Autonomous Mode: Example Usage**
     - The robot will continue moving around depending on the data from random_node 
@@ -114,7 +114,7 @@
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 3}"
      ```
   
-  ![autonomous](https://cdn.discordapp.com/attachments/718092584928411729/1289501791448338473/image.png?ex=66f90da0&is=66f7bc20&hm=576c81c93646ce1681bf8698dd12e3f6d9ff5d4cda76da1dd3f6ffe4c06b1be8&)
+  ![autonomous](images/image3.png)
 
   ## Authors
   - Karanyaphas Chitsuebsai 65340500065
