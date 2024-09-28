@@ -64,8 +64,8 @@
    ```
    
     - Then you have to use service call to choose a mode by the following instruction here:
+      
   ```bash 
-     ros2 launch fun4 fun.lauunch.py
      ros2 service call /change_mode fun4/srv/ControllerMode "mode: 0
       mode1_pose:
         x: 0.0
@@ -73,6 +73,7 @@
         z: 0.0
       mode2_toggle: false" 
    ```
+  
     **1.1) Inverse Kinematic Pose Mode: call the service**
    ```bash
    ros2 run god_turtle teleop_turtle.py
