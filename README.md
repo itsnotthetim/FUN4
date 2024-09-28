@@ -64,23 +64,28 @@
    ```
    
     - Then you have to use service call to choose a mode by the following instruction here:
+        - Mode: 1 ; **Inverse Pose Kinematic Mode --- You have to select mode: 1 and set the mode1_pose which  -0.03 <= x,y,z <= 0.53**
       
+        - Mode: 2 ; **Teleoperation Mode --- You have to select mode: 2 and set the mode2_pose which**
+          - **True = refer from base to end-effector frame**
+          - **False = refer directly to the end-effector frame **
+        
+        -  Mode: 3 ; **Autonomous Mode -- Select only mode: 3 **
+     
+      **You can leave the setting which doesn't relate to that mode**
+    
   ```bash 
-     ros2 service call /change_mode fun4/srv/ControllerMode "mode: 0
-      mode1_pose:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      mode2_toggle: false" 
+     ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 0, mode1_pose: {x: 0.0, y: 0.0, z: 0.0}, mode2_toggle: true}"
    ```
   
-    **1.1) Inverse Kinematic Pose Mode: call the service**
+    **2.) Inverse Kinematic Pose Mode: Example Usage**
    ```bash
-   ros2 run god_turtle teleop_turtle.py
-   
+   ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 1, mode1_pose: {x: 0.3, y: 0.2, z: 0.1}, mode2_toggle: true}"
    ```
-   ![teleopinterface](https://cdn.discordapp.com/attachments/1024674136758431752/1284653235877056543/image.png?ex=66e76a0f&is=66e6188f&hm=e0fd3f2f76b81f614ae65281782b43b9eec0a6f1478940a08d249cb4ce99a02c&)
-  ![teleopturtle](https://cdn.discordapp.com/attachments/1024674136758431752/1284654197471449229/image.png?ex=66e76af4&is=66e61974&hm=fb5cb29c398c88b7ff0a335a06185ccc4178b5531522ffeefc730841d327e92a&)
+   ![IPKMode](https://cdn.discordapp.com/attachments/718092584928411729/1289460430867267654/image.png?ex=66f8e71b&is=66f7959b&hm=014c317ae5193d7de413871dde3d81a80b0f948e887119e4f378a49a3fee42ed&)
+
+    **3.) Teleoperation Mode: Example Usage**
+
 
   ### 3.) Parameter Configuration
   ```bash
