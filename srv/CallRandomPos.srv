@@ -1,0 +1,4 @@
+bool is_call
+---
+bool success
+geometry_msgs/Pose random_pos

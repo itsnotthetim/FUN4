@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 import roboticstoolbox as rtb
 from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
-from controller_mode_interface.srv import ControllerMode , CallRandomPos
+from fun4.srv import ControllerMode , CallRandomPos
 from tf2_ros import TransformListener, Buffer
 from std_msgs.msg import Bool
 from sensor_msgs.msg import JointState
@@ -170,7 +170,7 @@ class ControllerNode(Node):
         self.get_pos_eff()
         self.end_effector_publisher()
         if self.mode == 2:
-            self.velo_jacobian_compute(self.linear_vel,True)
+            self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
         elif self.mode == 3:
             self.get_pos_eff()  # Get the current position of the end-effector
             self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])

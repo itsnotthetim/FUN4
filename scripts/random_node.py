@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from fun4.dummy_module import dummy_function, dummy_var
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -9,7 +8,7 @@ from spatialmath import *
 # import roboticstoolbox as rtb
 import math
 from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
-from controller_mode_interface.srv import ControllerMode , CallRandomPos
+from fun4.srv import ControllerMode , CallRandomPos
 from std_msgs.msg import Bool
 
 class RandomNode(Node):

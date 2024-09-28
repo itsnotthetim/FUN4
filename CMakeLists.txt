@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(fun4)
 
+
+
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
@@ -18,12 +20,16 @@ endif()
 ################ FIND DEPENDENCIES  #################
 find_package(ament_cmake REQUIRED)		# cpp (optional)
 find_package(rclcpp REQUIRED)			# cpp (optional)
-find_package(ament_cmake_python REQUIRED)   	# python (optional)
+# find_package(ament_cmake_python REQUIRED)   	# python (optional)
 find_package(rclpy REQUIRED)                	# python (optional)
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 ######################################################
 
 # Install Python Module
-ament_python_install_package(${PROJECT_NAME})
+# ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables  
 install(PROGRAMS
@@ -47,8 +53,6 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-
-
 ################ INSTALL LAUNCH, ETC #################
 install(DIRECTORY
   # add directories here
@@ -57,5 +61,12 @@ install(DIRECTORY
   meshes
   robot
   DESTINATION share/${PROJECT_NAME})
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ControllerMode.srv"
+  "srv/CallRandomPos.srv"
+  DEPENDENCIES geometry_msgs std_msgs sensor_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
+)
+
 
 ament_package()

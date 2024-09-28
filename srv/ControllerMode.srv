@@ -1,0 +1,14 @@
+# Service to change the controller mode . There're 3 modes involve with mode = 1 , 2 , 3 respectively
+# mode = 1 ; Inverse Pose Kinematic Mode
+# mode = 2 ; Teleoperation Mode
+# mode = 3 ; Autonomous Mode 
+
+# mode1_pose ; x, y, z of task space variable
+# mode2_toggle ; True = Refer from base to end-effector frame , True = Directly control to end-effector frame
+
+int64 mode
+geometry_msgs/Point mode1_pose
+bool mode2_toggle
+---
+bool success
+sensor_msgs/JointState joint_pos
