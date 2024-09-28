@@ -59,9 +59,9 @@
   
 
   ### 1.) Launch the `fun.lauunch.py` First before doing anything (Not reccomended to call service before running this)
-   ```bash 
-   ros2 launch fun4 fun.lauunch.py
-   ```
+     ```bash 
+     ros2 launch fun4 fun.lauunch.py
+     ```
    
     - Then you have to use service call to choose a mode by the following instruction here:
         - Mode: 1 ; **Inverse Pose Kinematic Mode --- You have to select mode: 1 and set the mode1_pose which  -0.03 <= x,y,z <= 0.53**
@@ -74,42 +74,47 @@
      
       **You can leave the setting which doesn't relate to that mode**
     
-  ```bash 
-     ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 0, mode1_pose: {x: 0.0, y: 0.0, z: 0.0}, mode2_toggle: true}"
-   ```
+    ```bash 
+       ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 0, mode1_pose: {x: 0.0, y: 0.0, z: 0.0}, mode2_toggle: true}"
+     ```
   
     **2.) Inverse Kinematic Pose Mode: Example Usage**
-   ```bash
-   ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 1, mode1_pose: {x: 0.3, y: 0.2, z: 0.1}}"
-   ```
+     ```bash
+     ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 1, mode1_pose: {x: 0.3, y: 0.2, z: 0.1}}"
+     ```
    ![IPKMode](https://cdn.discordapp.com/attachments/718092584928411729/1289460430867267654/image.png?ex=66f8e71b&is=66f7959b&hm=014c317ae5193d7de413871dde3d81a80b0f948e887119e4f378a49a3fee42ed&)
 
     **3.) Teleoperation Mode: Example Usage**
     - Mode: Reference at Base frame
-   ```bash
-   ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: true}"
-   ```
+     ```bash
+     ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: true}"
+     ```
    - Mode: Reference at the end-effector frame
-   ```bash
-   ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: false}"
-   ```
-    **3.1) Then Run teleop_twist_keyboard**
+     ```bash
+     ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: false}"
+     ```
+    **3.1) Then Run teleop_twist_keyboard (Stick in this terminal to control movement)**
     - Press q/z for increase++/decrease-- the linear velocity
     - Press t/b to control velocity at axis z+/z-
     - Press I/< (press **cap lock** before) to control velocity at axis x+/x-
     - Press J/L (press **cap lock** before) to control velocity at axis y-/y+
     - Press U/P (press **cap lock** before) to control velocirt at plane xy-/xy+
+    - Press any key except the defination to stop moving
+  
   ```bash
      ros2 run teleop_twist_keyboard teleop_twist_keyboard
    ```
-![teleoptwist](https://cdn.discordapp.com/attachments/718092584928411729/1289497590446030929/image.png?ex=66f909b7&is=66f7b837&hm=2dceb194166fb150e5ed6bf46d22452e827d58546bbd1f869bd0cbec1425e238&)
-    **4.) Autonomous Mode: Example Usage**
-      - The robot will continue moving around depending on the data from random_node 
-  ```bash
+![teleoptwist](https://cdn.discordapp.com/attachments/718092584928411729/1289500744575356980/image.png?ex=66f90ca7&is=66f7bb27&hm=c1566456140cdcad7426bc9c10aab8d49ee2f129e50abb63cf245886bc51e7cb&)
+
+![teleoptwist](https://cdn.discordapp.com/attachments/718092584928411729/1289500858920206376/image.png?ex=66f90cc2&is=66f7bb42&hm=20e2139eb1127e37712f78ef64b2854d9f23bb19cd08d5f5f56244c877cf512d&)
+
+  **4.) Autonomous Mode: Example Usage**
+    - The robot will continue moving around depending on the data from random_node 
+    ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 3}"
-   ```
+     ```
   
-  ![dclrprm](https://cdn.discordapp.com/attachments/1024674136758431752/1284656084103069726/image.png?ex=66e76cb6&is=66e61b36&hm=520fd17b7e996939c32fd0670ddd0232894338535e98cff2fa57d10175e3fee7&)
+  ![autonomous](https://cdn.discordapp.com/attachments/718092584928411729/1289501791448338473/image.png?ex=66f90da0&is=66f7bc20&hm=576c81c93646ce1681bf8698dd12e3f6d9ff5d4cda76da1dd3f6ffe4c06b1be8&)
 
   ## Authors
   - Karanyaphas Chitsuebsai 65340500065
