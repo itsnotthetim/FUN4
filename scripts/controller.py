@@ -77,6 +77,7 @@ class ControllerNode(Node):
         self.pose_publishing([0.1,0.1,0.2])
 
         self.display_pos = [0.0,0.0,0.0]
+        self.check_singularity = 0
         
         
         
@@ -183,7 +184,7 @@ class ControllerNode(Node):
             if self.flag == True:
                 self.call_random_pos(True)
             else:
-                self.get_logger().info(f'\n ================== Current Position =================== \n X: {self.display_pos[0]} \n Y: {self.display_pos[1]} \n Z: {self.display_pos[2]} \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
+                self.get_logger().info(f' \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
                 
             
 
@@ -223,10 +224,12 @@ class ControllerNode(Node):
         condition_number = np.linalg.cond(J_trans)
         if condition_number > 1e6:  
             self.get_logger().warn(f"Jacobian near-singular (cond: {condition_number})")
+            self.check_singularity = 1
             damping_factor = 1e-5
             J_damped = J_trans.T @ np.linalg.inv(J_trans @ J_trans.T + damping_factor * np.eye(3))
         else:
             J_damped = np.linalg.pinv(J_trans)
+            self.check_singularity = 0
 
         try:
             dq = 0.1 * (J_damped @ delta_x)  
@@ -258,7 +261,7 @@ class ControllerNode(Node):
             self.get_logger().warn(f"Jacobian near-singular (condition number: {condition_number}).")
             
         else:
-            self.get_logger().info(f"\n ================ Linear Velocity ================= \n Vx: {v_desired[0]} \n Vy: {v_desired[1]} \n Vx: {v_desired[2]} \n ================== Position =================== \n Current Position: {self.current_pose}")
+            self.get_logger().info(f"\n ================ Linear Velocity ================= \n Vx: {v_desired[0]} \n Vy: {v_desired[1]} \n Vx: {v_desired[2]}")
     
         try:
             dq = np.linalg.pinv(J_trans) @ v_desired_base  
