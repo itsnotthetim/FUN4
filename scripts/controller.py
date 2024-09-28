@@ -34,6 +34,8 @@ class ControllerNode(Node):
         self.pose_pub_ = self.create_publisher(JointState,'joint_states',10)
 
         self.create_subscription(PoseStamped,'target',self.pose_callback,10)
+        self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,10)
+
         self.random_pos_client = self.create_client(CallRandomPos,'get_rand_pos')
 
         self.create_timer(1/self.freq,self.timer_callback)
@@ -56,7 +58,9 @@ class ControllerNode(Node):
         self.pose_data = [0.0,0.0,0.0] 
         self.initial_guess = [0,0,0]
         self.current_pose = [0,0,0]
-        # self.flag = 0
+        self.flag = 0
+
+        self.linear_vel = np.array([0.0,0.0,0.0])
 
         # /end-effector
         self.buffer = Buffer()
@@ -65,14 +69,13 @@ class ControllerNode(Node):
         self.refference_frame = "link_0"
 
         self.q_new = np.array([0.9, 0.0, 0.0])  # Initial joint angles
-        self.target_position = np.array([0.34, 0.41, 0.2])  # Hypothetical target position
-        self.learning_rate = 0.01  # Step size for updating angles
         self.last_pose = [0, 0, 0]
         self.stable_start_time = None
+        self.toggle_teleop_mode = 0
         
     def call_random_pos(self,call):
         while not self.random_pos_client.wait_for_service(1.0):
-            self.get_logger().warn("Waiting for Server Starting . . .")
+            self.get_logger().warn("Waiting for Call Random Position Server Starting . . .")
         random_req = CallRandomPos.Request()
         random_req.is_call = call
         self.random_pos_client.call_async(random_req)
@@ -129,13 +132,19 @@ class ControllerNode(Node):
             respond.success = True
             return respond
     
-
+    def cmd_vel_callback(self,msg: Twist):
+        self.linear_vel = [msg.linear.x,msg.linear.y,msg.linear.z]
+        self.toggle_teleop_mode = msg.angular.z
+        # print(self.linear_vel)
 
     def pose_callback(self,msg: PoseStamped):
         x = msg.pose.position.x
         y = msg.pose.position.y
         z = msg.pose.position.z
         self.random_data = [x,y,z]
+
+       
+
 
     def pose_publishing(self,pose_array):
         msg = JointState()
@@ -148,15 +157,17 @@ class ControllerNode(Node):
         self.pose_pub_.publish(msg)
 
     def timer_callback(self):
-        if self.mode == 3:
-            check = self.detect_pose_stability()
+        self.get_pos_eff()
+        if self.mode == 2:
+            self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
+        elif self.mode == 3:
             self.get_pos_eff()  # Get the current position of the end-effector
             self.jacobian_compute(self.random_data[0],self.random_data[1],self.random_data[2])
-            if check == True:
+            if self.flag == True:
                 self.call_random_pos(True)
                 self.get_logger().info('COMPLETE')
             else:
-                self.get_logger().info(f'NOT YET rand:{self.random_data}' )
+                self.get_logger().info(f'\n Current Position: {self.current_pose}' )
             
             
 
@@ -164,23 +175,11 @@ class ControllerNode(Node):
 
 
     # ---------------------------------------------------------------------------------------------------------------------------- #
-
-    def custom_ikine(self,robot, T_desired, initial_guess):
-        # Define the objective function
-        def objective(q):
-            T_actual = robot.fkine(q)
-            return np.linalg.norm(T_actual.A - T_desired.A)
-        
-        # Run the optimization
-        result = minimize(objective, initial_guess, bounds=[(-pi, pi) for _ in initial_guess])
-        
-        return result.x
-
+  
     def compute_pose(self,x,y,z):
         if (self.r_min**2 <= x**2 + y**2 + (z-0.2)**2 <= self.r_max**2 ):
 
             T_desired = SE3(x,y,z)
-            # q = self.custom_ikine(self.robot_,T_desired,self.initial_guess)
             q, *_  = self.robot_.ikine_LM(T_desired,mask=[1,1,1,0,0,0],q0=[0.0,0.0,0.0])
             return q
         else:
@@ -196,6 +195,13 @@ class ControllerNode(Node):
 
         T_current = self.robot_.fkine(q_current)
         delta_x = (T_desired.A - T_current.A)[:3, 3]  
+
+        # Check if delta_x is smaller than the threshold
+        if np.linalg.norm(delta_x) < 1e-06:
+            # self.get_logger().info("Goal achieved! Error is sufficiently small.")
+            self.flag = True
+        else:
+            self.flag = False
 
         J_trans = self.robot_.jacob0(q_current)[:3, :]
 
@@ -215,18 +221,47 @@ class ControllerNode(Node):
         except np.linalg.LinAlgError as e:
             self.get_logger().error(f"Jacobian inversion failed: {e}")
 
-    def detect_pose_stability(self):
-        if np.allclose(self.current_pose, self.last_pose, atol=1e-5):
-            if self.stable_start_time is None:
-                self.stable_start_time = time.time()  # Start timing
-            elif time.time() - self.stable_start_time >= 1.0:
-                # Pose hasn't changed for 2 seconds
-                return True
+    def velo_jacobian_compute(self, v_desired,mode):
+
+        q_current = self.initial_guess
+        
+        # mode == 1: Tranformaiton that reffered by Base frame
+        if mode == 1:
+
+            T_current = self.robot_.fkine(q_current)
+            
+            # Extract the rotation matrix from the current pose (end-effector to base frame)
+            R_base_to_ee = T_current.R
+            
+            # Transform the desired velocity from the end-effector frame to the base frame
+            v_desired_base = R_base_to_ee @ v_desired
         else:
-            # Pose changed, reset timing
-            self.last_pose = self.current_pose
-            self.stable_start_time = None
-        return False
+            # Directly use to End effector
+            v_desired_base = v_desired
+
+        J_trans = self.robot_.jacob0(q_current)[:3, :]
+        condition_number = np.linalg.cond(J_trans)
+
+        if condition_number > 1e6:  # Singularity threshold 
+            self.get_logger().warn(f"Jacobian near-singular (condition number: {condition_number}).")
+            
+        else:
+            self.get_logger().info(f"\n Vx: {v_desired[0]} Vy: {v_desired[1]} Vx: {v_desired[2]} \n Current Position: {self.current_pose}")
+    
+        try:
+            dq = np.linalg.pinv(J_trans) @ v_desired_base  
+
+            q_new = q_current + dq * (1 / self.freq) 
+
+            self.pose_publishing(q_new)
+
+            self.initial_guess = q_new
+
+        except np.linalg.LinAlgError as e:
+            self.get_logger().error(f"Jacobian inversion failed: {e}")
+
+
+
         
         
 
