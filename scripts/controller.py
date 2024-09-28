@@ -96,7 +96,8 @@ class ControllerNode(Node):
             self.current_pose = pos.x,pos.y,pos.z
         
         except Exception as e:
-            self.get_logger().error(f"Failed to get transform: {e}")
+            # self.get_logger().error(f"Failed to get transform: {e}")
+            pass
     
     def end_effector_publisher(self):
         msg = PoseStamped()
