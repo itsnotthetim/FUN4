@@ -53,6 +53,25 @@
    ```bash
    echo "source ~/your_workspace/install/setup.bash" >> ~/.bashrc
    ```
+## **Finding Workspace**
+  - First, go to your workspace and open `Finding_Workspace.ipynb`
+    ```bash
+    sudo snap install code --classic
+    code ~/your_workspace/src/fun4/Finding_Workspace.ipynb
+     ```
+  - You will see the window like this; click on **Run all** or you can run each code block seperately
+    ![findws](images/image4.png)
+
+    ![teleoptwist](images/image5.png)
+
+    ![teleoptwist](images/image6.png)
+
+    ![teleoptwist](images/image7.png)
+
+    ![teleoptwist](images/image8.png)
+
+    ![teleoptwist](images/image9.png)
+
 ## Usage
 - This package provides you  1 launch file `fun.launch.py`. Contains with  `controller.py` use to control and compute the manipulator arm and `random_node.py` use to random the taskspace of
   an **Autonomous mode**. And 2 custom services in fun4/srv folder that use for communicate between user and within node -- `CallRandomPos.srv` and `ControllerMode`.
