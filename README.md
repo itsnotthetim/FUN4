@@ -21,66 +21,59 @@
         2.2) /cmd_vel that refer from a **base frame**
       **If the robot is close to the Singularity, Stop the robot and publish something to warn the user**
 
-    **3. Autonomous Mode:** Send the Taskspace from the **Randomizer Node** to the robot and the robot have to           move to the target position within 10 seconds. when finished,response will give the return as **True**             then regenerating the new position.
-
-## **Features**
--  **Teleop Keyboard Interface Control**: 
-  - Direction controlled: Control the movement of "Teleop Turtle" involve with linear and angular velocity
-    
-  - Spawn Pizza Key: Use keyblind to drop the pizza which reffer by current postition
-  - Save Path Key: Save the path from the pizza dropping position and store the data in yaml file.
-  - Clear Pizza Key: Press to "eat" all the pizzas that haven't stored in yaml file (unsaved).
-
-    _For these special keyblinds are performed to send the "flag" to "Teleop Controller" to command along thier functionality_
--  **Teleop Turtle Controller**: Receive the flag from Teleop Keyboard Interface to display the result.
-    _Once the path is saved 4 times, The program won't allow you to save it more, but you still can move around or drop the pizza if it remains._
--  **Param control RQT**: Can configure the parameters through **RQT** realtime such as controller gain
--  **Copy Turtle**: Spawn 4 turtles with the specific name to complete thier mission
-  
-## **System Architecture**
-![archsys](https://cdn.discordapp.com/attachments/1036539347777900635/1284697389659066482/Exam_page-0003.jpg?ex=66e7932e&is=66e641ae&hm=b5949eb0102dcfbce3c77dbe325bcc8a1a10aed98306122bf7b5eb64304553fd&)
-
-![archsys2](https://cdn.discordapp.com/attachments/1036539347777900635/1284697390095269968/Exam_page-0002.jpg?ex=66e7932e&is=66e641ae&hm=5456b609a23f2b945f4f27f2c35ae16452d758ef387550b90fce83e89074e495&)
-
-![archsys3](https://cdn.discordapp.com/attachments/1036539347777900635/1284697390535802940/Exam_page-0001.jpg?ex=66e7932e&is=66e641ae&hm=7d6e362d8c9445556d4ec0b9ea3ad199f658a54c2bb5c47a92f6379241caa0b4&)
-
+    **3. Autonomous Mode:** Send the Taskspace from the **Randomizer Node** to the robot and the robot have to           move to the target position within 10 seconds. when finished,response will give the return as **True** then regenerating the new position.
 
 ## **Installation**
 
 1. Create workspace
    ```bash
    mkdir ~/your_workspace
+   cd ~/your_workspace
+   mkdir src/
    ```
 2. Clone this repository to your workspace:
    ```bash
-   cd ~/your_workspace && git clone https://github.com/Kireiji02/Exam.git .
+   git clone https://github.com/itsnotthetim/fun4.git
    ```
 3. Build your workspace by colcon build:
    ```bash
+   cd ~/your_workspace
    colcon build
    ```
-4. Install keyboard and input pakages:
+4. Install the Roboticstoolbox package and teleop_twist_keyboard
    ```bash
-   pip install keyboard
-   pip install input
+   pip install roboticstoolbox-python
+   sudo apt install ros-humble-teleop-twist-keyboard
    ```
 5. Source the workspace:
    ```bash
-   c~/your_workspace/install/setup.bash
+   . ~/your_workspace/install/setup.bash
    ```
 6. Add your source command workspace into ~/.bashrc:
    ```bash
    echo "source ~/your_workspace/install/setup.bash" >> ~/.bashrc
    ```
 ## Usage
-- This package provides you `teleop_turtle.py` that control by keyboard input and 1 launch file `god_turtle.lauunch.py`. Contains with  `controller.py` use to diplay the output and compute the path, `copy_turtle.py` spawn 4 turtles to copy the path that was saved to yaml from `teleop_turtle` and distribute the position data to these turtles and `scheduler_node.py` is the node that be used to publish the state of `copy_turtle.py` that complete thier own mission and `controller_node.py` that show the status of itself (e.g pizza remaining, count of save, etc..)
-- ##**Don't forget to change YAML path in copy_turtle.py to your own path**
+- This package provides you  1 launch file `fun.launch.py`. Contains with  `controller.py` use to control and compute the manipulator arm and `random_node.py` use to random the taskspace of
+  an **Autonomous mode**. And 2 custom services in fun4/srv folder that use for communicate between user and within node -- `CallRandomPos.srv` and `ControllerMode`.
+  
 
-  ### 1.) Launch the `god_turtle.lauunch.py`
-   ```bash
-   ros2 launch god_turtle god_turtle.lauunch.py
+  ### 1.) Launch the `fun.lauunch.py` first before doing anything
+   ```bash 
+   ros2 launch fun4 fun.lauunch.py
    ```
-   ### 2.) Run the `teleop_turtle.py` to control Teleop Turtle
+   
+    - Then you have to use service call to choose a mode by the following instruction here:
+  ```bash 
+     ros2 launch fun4 fun.lauunch.py
+     ros2 service call /change_mode fun4/srv/ControllerMode "mode: 0
+      mode1_pose:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+      mode2_toggle: false" 
+   ```
+    **1.1) Inverse Kinematic Pose Mode: call the service**
    ```bash
    ros2 run god_turtle teleop_turtle.py
    
