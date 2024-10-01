@@ -106,6 +106,7 @@
 
     **3.) Teleoperation Mode: Example Usage**
     - Mode: Reference at Base frame
+  
      ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: true}"
      ```
@@ -130,9 +131,9 @@
 
   **4.) Autonomous Mode: Example Usage**
     - The robot will continue moving around depending on the data from random_node 
-    ```bash
+  ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 3}"
-     ```
+  ```
   
   ![autonomous](images/image3.png)
 
