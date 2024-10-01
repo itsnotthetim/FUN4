@@ -50,9 +50,10 @@
    ```bash
    . ~/your_workspace/install/setup.bash
    ```
-6. Add your source command workspace into ~/.bashrc:
+6. Add your source command workspace into ~/.bashrc and source again:
    ```bash
    echo "source ~/your_workspace/install/setup.bash" >> ~/.bashrc
+   . ~/.bashrc
    ```
 ## **Finding Workspace**
   - First, go to your workspace and open `Finding_Workspace.ipynb`
