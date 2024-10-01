@@ -30,6 +30,7 @@
    mkdir ~/your_workspace
    cd ~/your_workspace
    mkdir src/
+   cd src/
    ```
 2. Clone this repository to your workspace:
    ```bash
