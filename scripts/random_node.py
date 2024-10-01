@@ -29,7 +29,6 @@ class RandomNode(Node):
         self.z_offset = self.get_parameter('z_offset').value # Joint offset from base
         self.create_timer(1 / self.freq,self.timer_callback)
 
-        self.target_pub_ = self.create_publisher(PoseStamped,'target',10)
         self.rand_pub_ = self.create_publisher(PoseStamped,'auto_rand',10)
 
         self.call_random_pos_server = self.create_service(CallRandomPos,'get_rand_pos',self.callback_random_pos_server)
@@ -54,23 +53,22 @@ class RandomNode(Node):
 
     def callback_random_pos_server(self,request:CallRandomPos,respond):
         if request.is_call == True:
-            self.target_pose_publisher()
+            self.auto_rand_publisher()
             respond.success = True
             respond.random_pos.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
             print(self.random_array)
         return respond
     
-    def target_pose_publisher(self):
+    def auto_rand_publisher(self):
         self.generate_random_workspace_values()
         msg = PoseStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
         self.rand_pub_.publish(msg)     
-        self.target_pub_.publish(msg)
 
 
     def timer_callback(self):
         pass
-
 # ---------------------------------------------------------------------------------------------------------------------------#
 
     

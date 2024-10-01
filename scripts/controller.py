@@ -37,6 +37,7 @@ class ControllerNode(Node):
 
         self.create_subscription(PoseStamped,'auto_rand',self.random_pose_callback,10)
         self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,10)
+        self.target_pub_ = self.create_publisher(PoseStamped,'target',10)
 
         self.random_pos_client = self.create_client(CallRandomPos,'get_rand_pos')
 
@@ -82,8 +83,8 @@ class ControllerNode(Node):
         
         
     def call_random_pos(self,call):
-        while not self.random_pos_client.wait_for_service(1.0):
-            self.get_logger().warn("Waiting for Call Random Position Server Starting . . .")
+        # while not self.random_pos_client.wait_for_service(1.0):
+        #     self.get_logger().warn("Waiting for Call Random Position Server Starting . . .")
         random_req = CallRandomPos.Request()
         random_req.is_call = call
         self.random_pos_client.call_async(random_req)
@@ -118,7 +119,7 @@ class ControllerNode(Node):
         if self.mode == 1:
             self.pose_data = request.mode1_pose
             x, y, z = request.mode1_pose.x, request.mode1_pose.y, request.mode1_pose.z
-
+            self.end_effector_publisher()
 
             if (self.compute_pose(x, y, z) is not False and 
                 self.check_possible_workspace(x, y, z) is not False):
@@ -160,10 +161,18 @@ class ControllerNode(Node):
         x = msg.pose.position.x
         y = msg.pose.position.y
         z = msg.pose.position.z
-        self.random_data = [x,y,z]
+
+        self.random_data[0] = x
+        self.random_data[1] = y
+        self.random_data[2] = z
 
 
-        
+    def target_pose_publisher(self,x,y,z):
+        msg = PoseStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'link_0'
+        msg.pose.position = Point(x=x, y=y, z=z)
+        self.target_pub_.publish(msg)  
 
     
     def pose_publishing(self,pose_array):
@@ -176,7 +185,7 @@ class ControllerNode(Node):
 
     def timer_callback(self):
         self.get_pos_eff(self.current_pose)
-        self.end_effector_publisher()
+        
         if self.mode == 2:
             self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
         elif self.mode == 3:
@@ -184,6 +193,7 @@ class ControllerNode(Node):
             if self.flag == True:
                 self.call_random_pos(True)
             else:
+                self.target_pose_publisher(self.random_data[0],self.random_data[1],self.random_data[2])
                 self.get_logger().info(f' \n ================== Target Position =================== \n X: {self.random_data[0]} \n Y: {self.random_data[1]} \n Z: {self.random_data[2]}' )
                 
             
