@@ -92,12 +92,7 @@
         
         -  Mode: 3 ; **Autonomous Mode -- Select only mode: 3**
      
-      **You can leave the setting which doesn't relate to that mode**
     
-    ```bash 
-       ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 0, mode1_pose: {x: 0.0, y: 0.0, z: 0.0}, mode2_toggle: true}"
-     ```
-  
     **2.) Inverse Kinematic Pose Mode: Example Usage**
      ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 1, mode1_pose: {x: 0.3, y: 0.2, z: 0.1}}"
