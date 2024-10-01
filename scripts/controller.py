@@ -119,7 +119,7 @@ class ControllerNode(Node):
         if self.mode == 1:
             self.pose_data = request.mode1_pose
             x, y, z = request.mode1_pose.x, request.mode1_pose.y, request.mode1_pose.z
-            self.end_effector_publisher()
+            
 
             if (self.compute_pose(x, y, z) is not False and 
                 self.check_possible_workspace(x, y, z) is not False):
@@ -185,7 +185,7 @@ class ControllerNode(Node):
 
     def timer_callback(self):
         self.get_pos_eff(self.current_pose)
-        
+        self.end_effector_publisher()
         if self.mode == 2:
             self.velo_jacobian_compute(self.linear_vel,self.toggle_teleop_mode)
         elif self.mode == 3:

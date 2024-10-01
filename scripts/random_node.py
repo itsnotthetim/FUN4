@@ -60,7 +60,7 @@ class RandomNode(Node):
         return respond
     
     def auto_rand_publisher(self):
-        self.generate_random_workspace_values()
+        
         msg = PoseStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position = Point(x=self.random_array[0], y=self.random_array[1], z=self.random_array[2])
@@ -68,7 +68,7 @@ class RandomNode(Node):
 
 
     def timer_callback(self):
-        pass
+        self.generate_random_workspace_values()
 # ---------------------------------------------------------------------------------------------------------------------------#
 
     
