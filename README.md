@@ -30,6 +30,7 @@
    mkdir ~/your_workspace
    cd ~/your_workspace
    mkdir src/
+   cd src/
    ```
 2. Clone this repository to your workspace:
    ```bash
@@ -79,7 +80,7 @@
 
   ### 1.) Launch the `fun.lauunch.py` First before doing anything (Not reccomended to call service before running this)
      ```bash 
-     ros2 launch fun4 fun.lauunch.py
+     ros2 launch fun4 fun.launch.py
      ```
    
     - Then you have to use service call to choose a mode by the following instruction here:
