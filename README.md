@@ -106,6 +106,7 @@
 
     **3.) Teleoperation Mode: Example Usage**
     - Mode: Reference at Base frame
+  
      ```bash
      ros2 service call /change_mode fun4/srv/ControllerMode "{mode: 2, mode2_toggle: true}"
      ```
