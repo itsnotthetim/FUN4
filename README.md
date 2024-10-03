@@ -61,7 +61,8 @@
     sudo snap install code --classic
     code ~/your_workspace/src/fun4/Finding_Workspace.ipynb
      ```
-  - You will see the window like this; click on **Run all** or you can run each code block seperately
+  - You will see the window like this; click on **Run all** or you can run each code block seperately (if the window pop up something like install kernel, just do it)
+    But I already capture the screen so you can check these pictures below.
     ![findws](images/image4.png)
 
     ![teleoptwist](images/image5.png)
