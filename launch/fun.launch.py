@@ -25,7 +25,7 @@ from launch.actions import TimerAction
 def generate_launch_description():
     
     pkg = get_package_share_directory('fun4')
-    rviz_path = os.path.join(pkg,'config','display2.rviz')
+    rviz_path = os.path.join(pkg,'config','display.rviz')
     rviz = Node(
         package='rviz2',
         executable='rviz2',
